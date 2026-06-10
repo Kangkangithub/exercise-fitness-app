@@ -1,6 +1,8 @@
 package com.example.exercise.ui.home;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +12,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,6 +23,12 @@ import com.example.exercise.data.local.AppDatabase;
 import com.example.exercise.data.local.PreferencesHelper;
 import com.example.exercise.data.model.FitnessCourse;
 import com.example.exercise.ui.courses.CourseDetailActivity;
+import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
+import com.github.mikephil.charting.formatter.PercentFormatter;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,12 +40,16 @@ import java.util.concurrent.Executors;
 
 public class HomeFragment extends Fragment {
 
-    private TextView tvStreak, tvSteps, tvCalories, tvMinutes;
+    private TextView tvStreak, tvGreeting;
     private TextView tvGoalProgress, tvGoalPercent;
     private ProgressBar progressGoal;
-    private TextView tvGreeting;
     private RecyclerView rvHomeCourses;
     private CourseAdapter courseAdapter;
+
+    // 仪表盘
+    private PieChart chartDashboard;
+    private TextView tvDashSteps, tvDashGoal;
+    private TextView tvDashCalories, tvDashMinutes, tvDashDistance;
 
     @Nullable
     @Override
@@ -48,43 +61,122 @@ public class HomeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        initViews(view);
-        loadData();
-        setupRecommendedCourses();
-    }
 
-    private void initViews(View view) {
+        // 初始化控件
         tvGreeting = view.findViewById(R.id.tv_greeting);
         tvStreak = view.findViewById(R.id.tv_streak_home);
-        tvSteps = view.findViewById(R.id.tv_home_steps);
-        tvCalories = view.findViewById(R.id.tv_home_calories);
-        tvMinutes = view.findViewById(R.id.tv_home_minutes);
         tvGoalProgress = view.findViewById(R.id.tv_goal_progress);
         tvGoalPercent = view.findViewById(R.id.tv_goal_percent);
         progressGoal = view.findViewById(R.id.progress_goal);
         rvHomeCourses = view.findViewById(R.id.rv_home_courses);
+
+        chartDashboard = view.findViewById(R.id.chart_dashboard);
+        tvDashSteps = view.findViewById(R.id.tv_dashboard_steps);
+        tvDashGoal = view.findViewById(R.id.tv_dashboard_goal);
+        tvDashCalories = view.findViewById(R.id.tv_dash_calories);
+        tvDashMinutes = view.findViewById(R.id.tv_dash_minutes);
+        tvDashDistance = view.findViewById(R.id.tv_dash_distance);
+
+        // 初始化环形仪表盘
+        setupDashboardChart();
+
+        // 加载数据
+        loadData();
+        setupRecommendedCourses();
     }
 
+    // ===== 配置环形进度轮盘 =====
+    private void setupDashboardChart() {
+        // 空心圆环样式
+        chartDashboard.setDrawHoleEnabled(true);
+        chartDashboard.setHoleRadius(72f);                    // 内孔半径
+        chartDashboard.setTransparentCircleRadius(78f);        // 透明环半径
+        chartDashboard.setHoleColor(Color.WHITE);
+        chartDashboard.setTransparentCircleColor(Color.argb(60, 255, 255, 255));
+        chartDashboard.setDrawCenterText(false);               // 不自带中心文字（用FrameLayout叠加）
+        chartDashboard.setRotationEnabled(false);
+        chartDashboard.setHighlightPerTapEnabled(false);
+        chartDashboard.setTouchEnabled(false);
+        chartDashboard.setDrawEntryLabels(false);
+
+        // 隐藏图例
+        Legend legend = chartDashboard.getLegend();
+        legend.setEnabled(false);
+
+        // 隐藏描述
+        chartDashboard.getDescription().setEnabled(false);
+
+        // 初始数据：空进度
+        updateDashboardRing(0, 8000);
+    }
+
+    // ===== 更新环形仪表盘数据 =====
+    private void updateDashboardRing(int currentSteps, int stepGoal) {
+        // 计算进度百分比（限制在 0~100）
+        float progress = stepGoal > 0 ? (float) currentSteps / stepGoal * 100f : 0f;
+        if (progress > 100f) progress = 100f;
+        float remaining = 100f - progress;
+
+        List<PieEntry> entries = new ArrayList<>();
+        // 已完成部分
+        entries.add(new PieEntry(progress, "已完成"));
+        // 剩余部分
+        entries.add(new PieEntry(remaining, "剩余"));
+
+        PieDataSet dataSet = new PieDataSet(entries, "");
+
+        // 已完成 → 主题绿色，剩余 → 浅灰
+        int green = ContextCompat.getColor(requireContext(), R.color.primary);
+        int gray = ContextCompat.getColor(requireContext(), R.color.chip_bg);
+        dataSet.setColors(green, gray);
+        dataSet.setDrawValues(false);           // 不显示百分比标签
+        dataSet.setSliceSpace(3f);              // 扇区间隙
+
+        PieData data = new PieData(dataSet);
+        chartDashboard.setData(data);
+        chartDashboard.animateY(600);           // 动画效果
+        chartDashboard.invalidate();
+    }
+
+    // ===== 加载全部数据 =====
     private void loadData() {
         PreferencesHelper prefs = PreferencesHelper.getInstance(requireContext());
+
+        // 欢迎语
         String greeting = getTimeGreeting() + "，" + prefs.getNickname() + "！";
         tvGreeting.setText(greeting);
+
+        // 连续打卡天数
         int streakDays = prefs.getStreakDays();
         tvStreak.setText(streakDays + " 天");
-        int todaySteps = prefs.getTodaySteps();
-        tvSteps.setText(formatNumber(todaySteps));
 
+        // 今日步数
+        int todaySteps = prefs.getTodaySteps();
+        int stepGoal = prefs.getStepGoal();
+
+        // 更新环形仪表盘
+        updateDashboardRing(todaySteps, stepGoal);
+        tvDashSteps.setText(formatNumber(todaySteps));
+        tvDashGoal.setText("目标 " + formatNumber(stepGoal) + " 步");
+
+        // 从数据库加载累计数据
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext());
             int totalCalories = db.checkInDao().getTotalCalories();
             int totalMinutes = db.checkInDao().getTotalMinutes();
+
             String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
             int todayCount = db.checkInDao().getTodayCount(todayDate);
 
             requireActivity().runOnUiThread(() -> {
-                tvCalories.setText(formatNumber(totalCalories));
-                tvMinutes.setText(formatNumber(totalMinutes));
+                // 仪表盘下方三指标
+                tvDashCalories.setText(formatNumber(totalCalories));
+                tvDashMinutes.setText(formatNumber(totalMinutes));
+                // 距离估算：约1000步=0.7km
+                float distance = todaySteps * 0.0007f;
+                tvDashDistance.setText(String.format(Locale.getDefault(), "%.1f", distance));
 
+                // 目标进度条
                 int goalMinutes = prefs.getDailyGoalMinutes();
                 int todayMinutes = todayCount * 30;
                 if (todayMinutes > goalMinutes) todayMinutes = goalMinutes;
@@ -97,6 +189,7 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    // ===== 推荐课程列表 =====
     private void setupRecommendedCourses() {
         List<FitnessCourse> courses = new ArrayList<>();
         courses.add(new FitnessCourse("晨间瑜伽", "唤醒身体，提升柔韧性", "初级", 20, 120, R.drawable.bg_splash_gradient, "瑜伽"));
