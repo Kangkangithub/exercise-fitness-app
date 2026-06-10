@@ -34,8 +34,7 @@ public class CheckInFragment extends Fragment {
     private TextView tvCheckinStatus;
     private LinearLayout llExerciseTypes;
     private TextView tvDuration;
-    private EditText etCalories;
-    private EditText etNote;
+    private EditText etSteps, etCalories, etNote;
 
     private String selectedType = "跑步";
     private int durationMinutes = 30;
@@ -57,6 +56,7 @@ public class CheckInFragment extends Fragment {
         tvCheckinStatus = view.findViewById(R.id.tv_checkin_status);
         llExerciseTypes = view.findViewById(R.id.ll_exercise_types);
         tvDuration = view.findViewById(R.id.tv_duration);
+        etSteps = view.findViewById(R.id.et_steps);
         etCalories = view.findViewById(R.id.et_calories);
         etNote = view.findViewById(R.id.et_note);
 
@@ -64,6 +64,12 @@ public class CheckInFragment extends Fragment {
         View btnPlus = view.findViewById(R.id.btn_duration_plus);
         View btnSubmit = view.findViewById(R.id.btn_checkin_submit);
         View btnHistory = view.findViewById(R.id.btn_view_history);
+
+        // 回填当前步数到输入框
+        int savedSteps = PreferencesHelper.getInstance(requireContext()).getTodaySteps();
+        if (savedSteps > 0) {
+            etSteps.setText(String.valueOf(savedSteps));
+        }
 
         setupExerciseTypeChips();
         checkTodayStatus();
@@ -122,6 +128,14 @@ public class CheckInFragment extends Fragment {
     }
 
     private void submitCheckIn() {
+        // 读取步数（选填，不输入则保持原来步数不变）
+        String stepsStr = etSteps.getText().toString().trim();
+        int newSteps = -1;
+        if (!stepsStr.isEmpty()) {
+            try { newSteps = Integer.parseInt(stepsStr); }
+            catch (NumberFormatException e) { etSteps.setError("请输入有效步数"); return; }
+        }
+
         String caloriesStr = etCalories.getText().toString().trim();
         if (caloriesStr.isEmpty()) { etCalories.setError("请输入消耗卡路里"); return; }
         int calories;
@@ -132,11 +146,21 @@ public class CheckInFragment extends Fragment {
         String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         CheckInRecord record = new CheckInRecord(todayDate, selectedType, durationMinutes, calories, note);
 
+        // 捕获步数值用于子线程
+        final int finalSteps = newSteps;
+
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext());
             db.checkInDao().insert(record);
 
             PreferencesHelper prefs = PreferencesHelper.getInstance(requireContext());
+
+            // 如果用户输入了步数，更新到 SharedPreferences → 首页轮盘自动同步
+            if (finalSteps >= 0) {
+                prefs.setTodaySteps(finalSteps);
+            }
+
+            // 更新连续打卡天数
             String lastDate = prefs.getLastCheckinDate();
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DAY_OF_YEAR, -1);
@@ -152,9 +176,13 @@ public class CheckInFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle("打卡成功！")
-                        .setMessage("运动类型：" + selectedType + "\n时长：" + durationMinutes + " 分钟\n卡路里：" + calories + " 千卡")
+                        .setMessage("运动类型：" + selectedType
+                                + "\n时长：" + durationMinutes + " 分钟"
+                                + "\n卡路里：" + calories + " 千卡"
+                                + (finalSteps >= 0 ? "\n步数：" + finalSteps + " 步" : ""))
                         .setPositiveButton("太棒了", (dialog, which) -> {
                             dialog.dismiss();
+                            etSteps.setText("");
                             etCalories.setText("");
                             etNote.setText("");
                             checkTodayStatus();
@@ -164,5 +192,13 @@ public class CheckInFragment extends Fragment {
     }
 
     @Override
-    public void onResume() { super.onResume(); checkTodayStatus(); }
+    public void onResume() {
+        super.onResume();
+        // 回填最新步数
+        int savedSteps = PreferencesHelper.getInstance(requireContext()).getTodaySteps();
+        if (savedSteps > 0 && etSteps != null && etSteps.getText().toString().isEmpty()) {
+            etSteps.setText(String.valueOf(savedSteps));
+        }
+        checkTodayStatus();
+    }
 }

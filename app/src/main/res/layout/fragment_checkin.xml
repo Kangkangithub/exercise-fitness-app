@@ -126,6 +126,28 @@
                         android:contentDescription="增加" />
                 </LinearLayout>
 
+                <!-- ===== 新增：今日步数输入 ===== -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="今日步数"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/et_steps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:inputType="number"
+                    android:hint="例如：8000"
+                    android:padding="12dp"
+                    android:background="@drawable/bg_chip"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
