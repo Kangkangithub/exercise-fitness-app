@@ -87,7 +87,7 @@
                 app:startIconTint="@color/text_hint"
                 app:boxStrokeColor="@color/primary"
                 app:hintTextColor="@color/primary"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_username"
@@ -109,7 +109,7 @@
                 app:hintTextColor="@color/primary"
                 app:endIconMode="password_toggle"
                 app:endIconTint="@color/text_hint"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_password"
@@ -132,7 +132,7 @@
                 app:hintTextColor="@color/primary"
                 app:endIconMode="password_toggle"
                 app:endIconTint="@color/text_hint"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_confirm_password"
