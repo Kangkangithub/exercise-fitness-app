@@ -16,6 +16,9 @@ public class PreferencesHelper {
     private static final String KEY_STEP_GOAL = "step_goal";
     private static final String KEY_STREAK_DAYS = "streak_days";
     private static final String KEY_LAST_CHECKIN_DATE = "last_checkin_date";
+    private static final String KEY_IS_LOGGED_IN = "is_logged_in";
+    private static final String KEY_USERNAME = "account_username";
+    private static final String KEY_PASSWORD = "account_password";
 
     private final SharedPreferences prefs;
     private static PreferencesHelper instance;
@@ -51,4 +54,15 @@ public class PreferencesHelper {
     public void setStreakDays(int days) { prefs.edit().putInt(KEY_STREAK_DAYS, days).apply(); }
     public String getLastCheckinDate() { return prefs.getString(KEY_LAST_CHECKIN_DATE, ""); }
     public void setLastCheckinDate(String date) { prefs.edit().putString(KEY_LAST_CHECKIN_DATE, date).apply(); }
+
+    // ===== 登录/注册相关 =====
+    public boolean isLoggedIn() { return prefs.getBoolean(KEY_IS_LOGGED_IN, false); }
+    public void setLoggedIn(boolean loggedIn) { prefs.edit().putBoolean(KEY_IS_LOGGED_IN, loggedIn).apply(); }
+    public String getUsername() { return prefs.getString(KEY_USERNAME, ""); }
+    public void setUsername(String username) { prefs.edit().putString(KEY_USERNAME, username).apply(); }
+    public String getPassword() { return prefs.getString(KEY_PASSWORD, ""); }
+    public void setPassword(String password) { prefs.edit().putString(KEY_PASSWORD, password).apply(); }
+    public void logout() {
+        prefs.edit().putBoolean(KEY_IS_LOGGED_IN, false).apply();
+    }
 }

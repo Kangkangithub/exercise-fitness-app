@@ -37,6 +37,12 @@
             </intent-filter>
         </activity>
 
+        <!-- 登录/注册页 -->
+        <activity
+            android:name=".ui.login.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Exercise" />
+
         <!-- ��ҳ�� -->
         <activity
             android:name=".ui.main.MainActivity"
