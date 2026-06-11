@@ -1,5 +1,6 @@
 package com.example.exercise.ui.profile;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import com.example.exercise.R;
 import com.example.exercise.data.local.AppDatabase;
 import com.example.exercise.data.local.PreferencesHelper;
+import com.example.exercise.ui.login.LoginActivity;
 import com.example.exercise.data.model.CheckInRecord;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -70,7 +72,24 @@ public class ProfileFragment extends Fragment {
                     .setMessage("运动健身打卡 APP\n版本：1.0\n\n大学移动应用开发工程实践期末大作业\n\n技术栈：Java + Android\n数据库：Room (SQLite)\n图表：MPAndroidChart\n动画：Lottie")
                     .setPositiveButton("确定", null).show();
         });
-    }
+
+        // 退出登录
+        View btnLogout = view.findViewById(R.id.btn_logout);
+        btnLogout.setOnClickListener(v -> {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("退出登录")
+                    .setMessage("确定要退出当前账号吗？")
+                    .setPositiveButton("确定", (dialog, which) -> {
+                        PreferencesHelper.getInstance(requireContext()).logout();
+                        Intent intent = new Intent(requireContext(), LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        requireActivity().overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                        requireActivity().finish();
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+        });    }
 
     private void loadProfileData() {
         PreferencesHelper prefs = PreferencesHelper.getInstance(requireContext());
